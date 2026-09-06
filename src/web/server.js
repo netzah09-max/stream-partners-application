@@ -20,7 +20,16 @@ export function createWebApp({ store, reviewService, logger = console }) {
   app.disable("x-powered-by");
   app.use(express.json({ limit: "25kb" }));
   app.use(express.urlencoded({ extended: false, limit: "25kb" }));
-  app.use(express.static(publicDir, { extensions: ["html"] }));
+
+  app.get("/", (req, res) => {
+    res.redirect(302, "/apply");
+  });
+
+  app.get(["/apply", "/apply/"], (req, res) => {
+    res.sendFile(path.join(publicDir, "index.html"));
+  });
+
+  app.use(express.static(publicDir, { extensions: ["html"], index: false }));
 
   app.get("/health", (req, res) => {
     res.json({ ok: true });

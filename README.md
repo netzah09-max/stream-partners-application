@@ -102,6 +102,30 @@ Cloudflare will print a public `https://...trycloudflare.com` link. Share that l
 
 This no-domain Cloudflare link is temporary and can change when you restart the tunnel.
 
+## Custom Domain
+
+The application form is served at `/apply`. The root page redirects there automatically.
+
+For example:
+
+```text
+https://streamsyndicate.online -> https://streamsyndicate.online/apply
+https://www.streamsyndicate.online -> https://www.streamsyndicate.online/apply
+```
+
+For a permanent Cloudflare domain, add `streamsyndicate.online` to Cloudflare, change the domain's nameservers at Namecheap to the two nameservers Cloudflare gives you, then create a named Cloudflare Tunnel with these public hostnames:
+
+```text
+streamsyndicate.online     -> http://localhost:3000
+www.streamsyndicate.online -> http://localhost:3000
+```
+
+You can also add this if you want a direct subdomain:
+
+```text
+apply.streamsyndicate.online -> http://localhost:3000
+```
+
 ## Application Flow
 
 1. A creator submits the public form.
