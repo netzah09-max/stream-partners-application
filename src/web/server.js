@@ -52,13 +52,25 @@ export function createWebApp({ store, reviewService, logger = console }) {
       res.status(500).json({
         ok: false,
         errors: {
-          form: "Could not send the application right now. Please try again soon."
+          form: getSubmissionErrorMessage(error)
         }
       });
     }
   });
 
   return app;
+}
+
+function getSubmissionErrorMessage(error) {
+  if (error?.code === 50001 || error?.rawError?.code === 50001) {
+    return "The bot cannot access the Discord applications channel yet. Please tell staff to check the bot's channel permissions.";
+  }
+
+  if (error?.code === 50013 || error?.rawError?.code === 50013) {
+    return "The bot can see the Discord applications channel, but cannot send messages there yet. Please tell staff to check channel permissions.";
+  }
+
+  return "Could not send the application right now. Please try again soon.";
 }
 
 export function startWebServer({ config, store, reviewService, logger = console }) {

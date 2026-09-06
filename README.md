@@ -154,6 +154,12 @@ Check Twitch credentials and current live state without starting Discord:
 npm run check:twitch
 ```
 
+Check whether the bot can access both Discord channels from `.env`:
+
+```bash
+npm run check:discord
+```
+
 ## Environment Variables
 
 | Name | Required | Purpose |
