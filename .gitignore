@@ -2,4 +2,5 @@ node_modules/
 .env
 data/*.json
 data-preview/
+cloudflare-tunnel.log
 !data/.gitkeep

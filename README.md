@@ -80,6 +80,26 @@ Preview the form without Discord credentials:
 npm run preview:web
 ```
 
+## Cloudflare Tunnel From Your PC
+
+If your PC is running the bot and you do not want to buy a domain, run the bot first:
+
+```powershell
+cd C:\discord-live-bot
+npm start
+```
+
+Then open another PowerShell window and run:
+
+```powershell
+cd C:\discord-live-bot
+.\scripts\start-cloudflare-tunnel.ps1
+```
+
+Cloudflare will print a public `https://...trycloudflare.com` link. Share that link with applicants. Keep both windows open while the bot and website should stay online.
+
+This no-domain Cloudflare link is temporary and can change when you restart the tunnel.
+
 ## Application Flow
 
 1. A creator submits the public form.
