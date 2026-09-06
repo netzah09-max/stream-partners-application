@@ -51,6 +51,8 @@ You do not need the privileged Message Content intent for this bot.
 
 This is one Twitch app for your bot/server. You do not need a separate Twitch client ID for each streamer.
 
+For the Twitch app's OAuth Redirect URL, `http://localhost` is fine for this bot because live checks use a server-to-server app token and do not send users through Twitch login. If you later add a real "Log in with Twitch" button, replace it with your real callback URL, such as `https://your-domain.com/auth/twitch/callback`.
+
 5. Add Twitch channels to the watchlist manually, if you want:
 
 ```bash
