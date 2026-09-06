@@ -3,4 +3,5 @@ node_modules/
 data/*.json
 data-preview/
 cloudflare-tunnel.log
+bot*.log
 !data/.gitkeep
