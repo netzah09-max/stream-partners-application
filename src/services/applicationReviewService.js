@@ -158,7 +158,6 @@ export function buildApplicationEmbed(application) {
         .join("\n")
     )
     .addFields(
-      field("Contact", answers.contact || "Not provided", true),
       field("Audience", answers.audienceSize, true),
       field("Content", answers.content),
       field("Promote Community", labelChoice(answers.promoteCommunity), true),
