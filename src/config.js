@@ -43,6 +43,11 @@ function cleanRoleId(roleId) {
   return String(roleId).trim().replace(/^<@&(\d+)>$/, "$1");
 }
 
+function cleanOptionalRoleId(roleId) {
+  const cleaned = roleId ? cleanRoleId(roleId) : "";
+  return cleaned || null;
+}
+
 function readRoleIdsFromEnv(names) {
   return [
     ...new Set(
@@ -140,6 +145,11 @@ export function readBotConfig() {
         process.env.DISCORD_APPLICATIONS_CHANNEL_ID?.trim() ||
         process.env.discord_applications_channel_id?.trim() ||
         null,
+      acceptedRoleId: cleanOptionalRoleId(
+        process.env.DISCORD_ACCEPTED_ROLE_ID ||
+          process.env.discord_accepted_role_id ||
+          process.env.ACCEPTED_ROLE_ID
+      ),
       liveRoleIds,
       platformRoleIds,
       liveRoleId: liveRoleIds[0] ?? null

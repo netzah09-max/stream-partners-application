@@ -18,12 +18,14 @@ export class ApplicationReviewService {
     client,
     store,
     applicationsChannelId,
+    acceptedRoleId = null,
     liveNotificationChannelId,
     logger = console
   }) {
     this.client = client;
     this.store = store;
     this.applicationsChannelId = applicationsChannelId;
+    this.acceptedRoleId = acceptedRoleId;
     this.liveNotificationChannelId = liveNotificationChannelId;
     this.logger = logger;
   }
@@ -105,15 +107,82 @@ export class ApplicationReviewService {
       sourceApplicationId: application.id,
       enabled: true
     });
+    const roleAssignment = await this.assignAcceptedRole({ application, interaction });
+    const reviewNote = [
+      `Added ${streamer.platform}:${streamer.handle} to live notifications.`,
+      roleAssignment?.reviewNote
+    ]
+      .filter(Boolean)
+      .join(" ");
     const updated = await this.store.updateApplicationStatus(application.id, {
       status: "accepted",
       reviewedBy,
-      reviewNote: `Added ${streamer.platform}:${streamer.handle} to live notifications.`
+      reviewNote
     });
 
     await this.updateReviewMessage(interaction, updated);
-    await interaction.editReply(
-      `Accepted ${application.answers.creatorName}. ${getPlatformName(streamer.platform)} link is now on the live notification list.`
+    const reply = [
+      `Accepted ${application.answers.creatorName}. ${getPlatformName(streamer.platform)} link is now on the live notification list.`,
+      roleAssignment?.replyNote
+    ]
+      .filter(Boolean)
+      .join(" ");
+    await interaction.editReply(reply);
+  }
+
+  async assignAcceptedRole({ application, interaction }) {
+    if (!this.acceptedRoleId) {
+      return null;
+    }
+
+    const guild = await resolveInteractionGuild(this.client, interaction);
+    if (!guild) {
+      return roleAssignmentResult(
+        "Accepted role not added: no Discord server was found.",
+        "I could not add the accepted role because this review was not connected to a server."
+      );
+    }
+
+    const role = await guild.roles.fetch(this.acceptedRoleId).catch((error) => {
+      this.logger.warn("Could not fetch accepted applicant role:", error);
+      return null;
+    });
+    if (!role) {
+      return roleAssignmentResult(
+        "Accepted role not added: configured role was not found.",
+        "I could not add the accepted role because that role ID was not found in this server."
+      );
+    }
+
+    const member = await findGuildMemberByApplicantName(
+      guild,
+      application.answers.creatorName,
+      this.logger
+    );
+    if (!member) {
+      return roleAssignmentResult(
+        "Accepted role not added: applicant username was not found.",
+        "I accepted the channel, but could not find that Discord username to add the role."
+      );
+    }
+
+    try {
+      await member.roles.add(
+        this.acceptedRoleId,
+        `Accepted partner application ${application.id}`
+      );
+    } catch (error) {
+      this.logger.warn("Could not assign accepted applicant role:", error);
+      return roleAssignmentResult(
+        "Accepted role not added: check Manage Roles permission and role order.",
+        "I accepted the channel, but could not add the role. Check the bot's Manage Roles permission and make sure the bot role is above the accepted role."
+      );
+    }
+
+    const userLabel = formatDiscordUser(member.user);
+    return roleAssignmentResult(
+      `Accepted role assigned to ${userLabel}.`,
+      `Accepted role added to ${userLabel}.`
     );
   }
 
@@ -227,4 +296,92 @@ function labelChoice(value) {
   };
 
   return choices[value] ?? "Not provided";
+}
+
+async function resolveInteractionGuild(client, interaction) {
+  if (interaction.guild) {
+    return interaction.guild;
+  }
+
+  if (!interaction.guildId) {
+    return null;
+  }
+
+  return client.guilds.fetch(interaction.guildId).catch(() => null);
+}
+
+export async function findGuildMemberByApplicantName(guild, applicantName, logger = console) {
+  const userId = extractDiscordUserId(applicantName);
+  if (userId) {
+    return guild.members.fetch(userId).catch(() => null);
+  }
+
+  const query = getDiscordMemberSearchQuery(applicantName);
+  const candidates = new Map();
+  for (const member of guild.members.cache.values()) {
+    candidates.set(member.id, member);
+  }
+
+  if (query && typeof guild.members.search === "function") {
+    try {
+      const results = await guild.members.search({ query, limit: 10 });
+      for (const member of results.values()) {
+        candidates.set(member.id, member);
+      }
+    } catch (error) {
+      logger.warn("Could not search guild members for accepted applicant:", error);
+    }
+  }
+
+  return [...candidates.values()].find((member) =>
+    memberMatchesApplicantName(member, applicantName)
+  ) ?? null;
+}
+
+export function extractDiscordUserId(value) {
+  const match = String(value ?? "")
+    .trim()
+    .match(/^(?:<@!?)?(\d{17,20})>?$/);
+  return match?.[1] ?? null;
+}
+
+export function memberMatchesApplicantName(member, applicantName) {
+  const target = normalizeDiscordName(applicantName);
+  if (!target) {
+    return false;
+  }
+
+  const user = member.user ?? {};
+  return [
+    user.id,
+    user.username,
+    user.tag,
+    user.globalName,
+    member.nickname,
+    member.displayName
+  ]
+    .filter(Boolean)
+    .some((value) => normalizeDiscordName(value) === target);
+}
+
+function getDiscordMemberSearchQuery(value) {
+  return String(value ?? "")
+    .trim()
+    .replace(/^@+/, "")
+    .split("#")[0]
+    .trim()
+    .slice(0, 100);
+}
+
+function normalizeDiscordName(value) {
+  return String(value ?? "").trim().replace(/^@+/, "").toLowerCase();
+}
+
+function roleAssignmentResult(reviewNote, replyNote) {
+  return { reviewNote, replyNote };
+}
+
+function formatDiscordUser(user) {
+  const label = user.tag || user.username || "Discord user";
+  return `${label} (${user.id})`;
 }

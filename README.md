@@ -46,8 +46,11 @@ The bot needs access to the notification channel and the applications channel wi
 - View Channel
 - Send Messages
 - Embed Links
+- Manage Roles, if you want accepted applicants to receive a role
 
 You do not need the privileged Message Content intent for this bot.
+
+If you set `DISCORD_ACCEPTED_ROLE_ID`, put the bot's own role above that accepted role in Discord's role list. Discord user IDs or mentions are the most reliable way for applicants to identify themselves, but the bot also tries to match typed usernames.
 
 4. Optional for Twitch live alerts: create one Twitch application in the Twitch Developer Console and put its client ID and client secret into `.env`.
 
@@ -132,7 +135,8 @@ apply.streamsyndicate.online -> http://localhost:3000
 2. The bot posts their answers into `DISCORD_APPLICATIONS_CHANNEL_ID`.
 3. Staff press Accept or Deny in Discord.
 4. Accept saves the submitted channel link into `data/watchlist.json`.
-5. The live monitor reloads that watchlist every poll and posts future live alerts into `DISCORD_NOTIFICATION_CHANNEL_ID`.
+5. Accept gives the applicant `DISCORD_ACCEPTED_ROLE_ID` when that setting is filled in and the typed Discord account can be found.
+6. The live monitor reloads that watchlist every poll and posts future live alerts into `DISCORD_NOTIFICATION_CHANNEL_ID`.
 
 ## Commands
 
@@ -191,6 +195,7 @@ npm run check:discord
 | `DISCORD_BOT_TOKEN` | Yes | Discord bot token. |
 | `DISCORD_NOTIFICATION_CHANNEL_ID` | Yes | Default Discord channel for live notifications. |
 | `DISCORD_APPLICATIONS_CHANNEL_ID` | Yes for website | Discord channel where website applications should be sent. |
+| `DISCORD_ACCEPTED_ROLE_ID` | No | Role ID to give an applicant when staff press Accept. |
 | `TWITCH_PING_ROLE_ID` | No | Twitch ping ID. |
 | `KICK_PING_ROLE_ID` | No | Kick ping ID. |
 | `YOUTUBE_PING_ROLE_ID` | No | YouTube ping ID. |

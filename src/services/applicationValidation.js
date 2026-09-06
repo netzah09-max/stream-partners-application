@@ -22,7 +22,7 @@ export function validateApplicationForm(body) {
     errors.form = "Submission could not be accepted.";
   }
 
-  requireField(errors, values, "creatorName", "Name or Discord username is required.");
+  requireField(errors, values, "creatorName", "Discord username, mention, or user ID is required.");
   requireField(errors, values, "content", "Content answer is required.");
   requireField(errors, values, "channelLink", "Channel link is required.");
   requireField(errors, values, "audienceSize", "Audience size is required.");

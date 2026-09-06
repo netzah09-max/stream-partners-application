@@ -76,6 +76,7 @@ async function main() {
       client,
       store,
       applicationsChannelId: config.discord.applicationsChannelId,
+      acceptedRoleId: config.discord.acceptedRoleId,
       liveNotificationChannelId: config.discord.notificationChannelId
     });
 
