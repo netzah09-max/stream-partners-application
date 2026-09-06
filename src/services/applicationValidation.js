@@ -12,6 +12,7 @@ export function validateApplicationForm(body) {
     promoteCommunity: clean(body.promoteCommunity, 20),
     collaborate: clean(body.collaborate, 20),
     events: clean(body.events, 20),
+    futureVideosEvents: clean(body.futureVideosEvents, 20),
     notes: clean(body.notes, 1000),
     website: clean(body.website, 120)
   };
@@ -28,6 +29,7 @@ export function validateApplicationForm(body) {
   requireChoice(errors, values, "promoteCommunity", "Community promotion answer is required.");
   requireChoice(errors, values, "collaborate", "Partner content answer is required.");
   requireChoice(errors, values, "events", "Events answer is required.");
+  requireChoice(errors, values, "futureVideosEvents", "Future YouTube videos/events answer is required.");
 
   let parsedChannel = null;
   if (values.channelLink) {

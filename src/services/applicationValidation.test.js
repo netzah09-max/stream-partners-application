@@ -10,7 +10,8 @@ test("validates a complete application", () => {
     audienceSize: "100 followers",
     promoteCommunity: "yes",
     collaborate: "maybe",
-    events: "no"
+    events: "no",
+    futureVideosEvents: "yes"
   });
 
   assert.equal(result.isValid, true);

@@ -162,7 +162,8 @@ export function buildApplicationEmbed(application) {
       field("Content", answers.content),
       field("Promote Community", labelChoice(answers.promoteCommunity), true),
       field("Create With Partners", labelChoice(answers.collaborate), true),
-      field("Events And Activities", labelChoice(answers.events), true)
+      field("Events And Activities", labelChoice(answers.events), true),
+      field("Future YouTube Videos/Events", labelChoice(answers.futureVideosEvents), true)
     )
     .setTimestamp(new Date(application.createdAt));
 
