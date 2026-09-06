@@ -39,6 +39,8 @@ Copy-Item .env.example .env
 
 3. Create a Discord app and bot in the Discord Developer Portal.
 
+Use the Discord Bot Token in `.env`. Do not use the Application ID, Client ID, or Public Key for `DISCORD_BOT_TOKEN`.
+
 The bot needs access to the notification channel and the applications channel with:
 
 - View Channel
