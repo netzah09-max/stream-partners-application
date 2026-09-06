@@ -1,0 +1,28 @@
+{
+  "name": "discord-live-bot",
+  "version": "0.1.0",
+  "description": "Discord bot that announces when approved streamers go live.",
+  "type": "module",
+  "private": true,
+  "engines": {
+    "node": ">=20.0.0"
+  },
+  "scripts": {
+    "start": "node src/index.js",
+    "dev": "node --watch src/index.js",
+    "preview:web": "node scripts/preview-web.js",
+    "watch:add": "node scripts/watchlist.js add",
+    "watch:remove": "node scripts/watchlist.js remove",
+    "watch:disable": "node scripts/watchlist.js disable",
+    "watch:enable": "node scripts/watchlist.js enable",
+    "watch:list": "node scripts/watchlist.js list",
+    "check:twitch": "node scripts/check-twitch.js",
+    "test": "node --test"
+  },
+  "dependencies": {
+    "discord.js": "^14.27.0",
+    "dotenv": "^17.4.2",
+    "express": "^5.2.1",
+    "express-rate-limit": "^8.7.0"
+  }
+}
