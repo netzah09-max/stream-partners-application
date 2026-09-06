@@ -8,6 +8,8 @@ const publicDir = path.join(projectRoot, "public");
 
 export function createWebApp({ store, reviewService, logger = console }) {
   const app = express();
+  app.set("trust proxy", 1);
+
   const submissionLimiter = rateLimit({
     windowMs: 10 * 60 * 1000,
     limit: 5,
