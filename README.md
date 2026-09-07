@@ -194,11 +194,38 @@ Check Twitch credentials and current live state without starting Discord:
 npm run check:twitch
 ```
 
+Check YouTube credentials and current live state without starting Discord:
+
+```bash
+npm run check:youtube
+```
+
 Check whether the bot can access both Discord channels from `.env`:
 
 ```bash
 npm run check:discord
 ```
+
+## YouTube Live Notifications
+
+YouTube live checks need one Google Cloud API key for the bot. You do not need a separate key for every streamer.
+
+1. Open Google Cloud Console.
+2. Create or select a project.
+3. Enable **YouTube Data API v3** for that project.
+4. Go to **APIs & Services** -> **Credentials**.
+5. Create an **API key**.
+6. Restrict the key to **YouTube Data API v3**.
+7. Paste the key into `.env`:
+
+```env
+YOUTUBE_API_KEY=your_google_api_key_here
+```
+
+8. Restart the bot with `npm start`.
+9. Run `npm run check:youtube` to confirm the key works.
+
+YouTube creators can apply with links like `https://youtube.com/@channelname` or `https://www.youtube.com/channel/UC...`. When accepted, their channel is added to the watchlist and checked every poll.
 
 ## Environment Variables
 
@@ -217,7 +244,7 @@ npm run check:discord
 | `DISCORD_LIVE_ROLE_IDS` | No | Optional backup role IDs for platforms without a platform ping ID. |
 | `TWITCH_CLIENT_ID` | For Twitch | Twitch app client ID. One app handles all watched Twitch streamers. |
 | `TWITCH_CLIENT_SECRET` | For Twitch | Twitch app client secret. |
-| `YOUTUBE_API_KEY` | For YouTube | YouTube Data API key used to check accepted YouTube channels. |
+| `YOUTUBE_API_KEY` | For YouTube | YouTube Data API v3 key used to check accepted YouTube channels. |
 | `TIKTOK_LIVE_CHECK_URL` | For TikTok | Third-party endpoint used to check accepted TikTok channels. |
 | `TIKTOK_LIVE_CHECK_API_KEY` | No | Optional bearer token for the TikTok live-check endpoint. |
 | `TWITCH_CHANNELS` | No | Comma-separated Twitch handles to seed on startup. |

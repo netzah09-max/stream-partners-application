@@ -17,6 +17,7 @@
     "watch:enable": "node scripts/watchlist.js enable",
     "watch:list": "node scripts/watchlist.js list",
     "check:discord": "node scripts/check-discord.js",
+    "check:youtube": "node scripts/check-youtube.js",
     "check:twitch": "node scripts/check-twitch.js",
     "test": "node --test"
   },
