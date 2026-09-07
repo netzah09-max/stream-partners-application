@@ -14,7 +14,15 @@ export function createWebApp({ store, reviewService, logger = console }) {
     windowMs: 10 * 60 * 1000,
     limit: 5,
     standardHeaders: "draft-8",
-    legacyHeaders: false
+    legacyHeaders: false,
+    handler: (req, res) => {
+      res.status(429).json({
+        ok: false,
+        errors: {
+          form: "Too many applications were sent from this connection. Please wait a few minutes and try again."
+        }
+      });
+    }
   });
 
   app.disable("x-powered-by");

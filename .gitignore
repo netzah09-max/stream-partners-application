@@ -1,6 +1,7 @@
 node_modules/
 .env
 data/*.json
+data/*.bak
 data-preview/
 cloudflare-tunnel.log
 bot*.log

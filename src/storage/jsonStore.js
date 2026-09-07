@@ -45,6 +45,9 @@ export class JsonFileStore {
       if (error.code === "ENOENT") {
         return structuredClone(defaults);
       }
+      if (error instanceof SyntaxError) {
+        return recoverJsonWithTrailingData({ filePath, defaults, error });
+      }
       throw error;
     }
   }
@@ -346,4 +349,64 @@ function normalizeApplicationChannel(channel = null) {
     profileUrl: channel.profileUrl || null,
     metadata: channel.metadata && typeof channel.metadata === "object" ? channel.metadata : {}
   };
+}
+
+async function recoverJsonWithTrailingData({ filePath, defaults, error }) {
+  const raw = await fs.readFile(filePath, "utf8");
+  const end = findCompleteJsonDocumentEnd(raw);
+
+  if (end < 1) {
+    throw error;
+  }
+
+  try {
+    const recovered = { ...defaults, ...JSON.parse(raw.slice(0, end)) };
+    const backupPath = `${filePath}.corrupt-${Date.now()}.bak`;
+    await fs.writeFile(backupPath, raw, "utf8");
+    await fs.writeFile(filePath, `${JSON.stringify(recovered, null, 2)}\n`, "utf8");
+    console.warn(`Recovered ${path.basename(filePath)} after malformed trailing data.`);
+    return recovered;
+  } catch {
+    throw error;
+  }
+}
+
+function findCompleteJsonDocumentEnd(raw) {
+  let depth = 0;
+  let inString = false;
+  let escape = false;
+
+  for (let index = 0; index < raw.length; index += 1) {
+    const char = raw[index];
+
+    if (inString) {
+      if (escape) {
+        escape = false;
+      } else if (char === "\\") {
+        escape = true;
+      } else if (char === "\"") {
+        inString = false;
+      }
+      continue;
+    }
+
+    if (char === "\"") {
+      inString = true;
+      continue;
+    }
+
+    if (char === "{" || char === "[") {
+      depth += 1;
+      continue;
+    }
+
+    if (char === "}" || char === "]") {
+      depth -= 1;
+      if (depth === 0) {
+        return index + 1;
+      }
+    }
+  }
+
+  return -1;
 }

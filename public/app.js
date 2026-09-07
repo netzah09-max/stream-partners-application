@@ -21,7 +21,7 @@ if (form && statusBox) {
         },
         body: JSON.stringify(payload)
       });
-      const result = await response.json();
+      const result = await readJsonResponse(response);
 
       if (!response.ok || !result.ok) {
         showErrors(result.errors);
@@ -46,6 +46,20 @@ function showErrors(errors = {}) {
 function setStatus(message, tone) {
   statusBox.textContent = message;
   statusBox.dataset.tone = tone;
+}
+
+async function readJsonResponse(response) {
+  const contentType = response.headers.get("content-type") || "";
+  if (contentType.includes("application/json")) {
+    return response.json();
+  }
+
+  return {
+    ok: false,
+    errors: {
+      form: "Could not send the application right now. Please try again soon."
+    }
+  };
 }
 
 function getSuccessMessage({ applicationLabel, result }) {
