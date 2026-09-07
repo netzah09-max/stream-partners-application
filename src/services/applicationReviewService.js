@@ -6,6 +6,7 @@ import {
   MessageFlags
 } from "discord.js";
 import { getPlatformName } from "./channelLinks.js";
+import { applicationTypes } from "./applicationValidation.js";
 
 const statusColors = {
   pending: 0xf3c969,
@@ -17,31 +18,36 @@ export class ApplicationReviewService {
   constructor({
     client,
     store,
-    applicationsChannelId,
+    applicationReviews = {},
+    applicationsChannelId = null,
     acceptedRoleId = null,
     liveNotificationChannelId,
     logger = console
   }) {
     this.client = client;
     this.store = store;
-    this.applicationsChannelId = applicationsChannelId;
-    this.acceptedRoleId = acceptedRoleId;
+    this.applicationReviews = normalizeApplicationReviews({
+      applicationReviews,
+      applicationsChannelId,
+      acceptedRoleId
+    });
     this.liveNotificationChannelId = liveNotificationChannelId;
     this.logger = logger;
   }
 
   async sendApplicationReview(application) {
-    if (!this.applicationsChannelId) {
-      throw new Error("DISCORD_APPLICATIONS_CHANNEL_ID is not set.");
+    const reviewConfig = this.getReviewConfig(application);
+    if (!reviewConfig.channelId) {
+      throw new Error(`${getApplicationsChannelEnvName(application)} is not set.`);
     }
 
-    const channel = await this.client.channels.fetch(this.applicationsChannelId);
+    const channel = await this.client.channels.fetch(reviewConfig.channelId);
     if (!channel?.isTextBased()) {
-      throw new Error(`Discord channel ${this.applicationsChannelId} is not a text channel.`);
+      throw new Error(`Discord channel ${reviewConfig.channelId} is not a text channel.`);
     }
 
     const message = await channel.send({
-      content: `New partner application: ${application.answers.creatorName}`,
+      content: `New ${getApplicationTypeLabel(application).toLowerCase()} application: ${getApplicantDiscordInput(application) || "Unknown applicant"}`,
       embeds: [buildApplicationEmbed(application)],
       components: buildReviewComponents(application),
       allowedMentions: { parse: [] }
@@ -93,10 +99,19 @@ export class ApplicationReviewService {
   }
 
   async acceptApplication({ application, reviewedBy, interaction }) {
+    if (getApplicationType(application) === applicationTypes.staff) {
+      await this.acceptStaffApplication({ application, reviewedBy, interaction });
+      return;
+    }
+
+    await this.acceptStreamPartnerApplication({ application, reviewedBy, interaction });
+  }
+
+  async acceptStreamPartnerApplication({ application, reviewedBy, interaction }) {
     const streamer = await this.store.upsertStreamer({
       platform: application.channel.platform,
       handle: application.channel.handle,
-      displayName: application.channel.displayName || application.answers.creatorName,
+      displayName: application.channel.displayName || getApplicantDiscordInput(application),
       notificationChannelId: this.liveNotificationChannelId,
       acceptedBy: `${reviewedBy.tag} (${reviewedBy.id})`,
       profileUrl: application.channel.profileUrl,
@@ -108,9 +123,15 @@ export class ApplicationReviewService {
       enabled: true
     });
     const roleAssignment = await this.assignAcceptedRole({ application, interaction });
+    const dmDelivery = await this.sendApplicantReviewDm({
+      application,
+      interaction,
+      status: "accepted"
+    });
     const reviewNote = [
       `Added ${streamer.platform}:${streamer.handle} to live notifications.`,
-      roleAssignment?.reviewNote
+      roleAssignment?.reviewNote,
+      dmDelivery.reviewNote
     ]
       .filter(Boolean)
       .join(" ");
@@ -122,16 +143,50 @@ export class ApplicationReviewService {
 
     await this.updateReviewMessage(interaction, updated);
     const reply = [
-      `Accepted ${application.answers.creatorName}. ${getPlatformName(streamer.platform)} link is now on the live notification list.`,
-      roleAssignment?.replyNote
+      `Accepted ${getApplicantDiscordInput(application)}. ${getPlatformName(streamer.platform)} link is now on the live notification list.`,
+      roleAssignment?.replyNote,
+      dmDelivery.replyNote
     ]
       .filter(Boolean)
       .join(" ");
     await interaction.editReply(reply);
   }
 
+  async acceptStaffApplication({ application, reviewedBy, interaction }) {
+    const roleAssignment = await this.assignAcceptedRole({ application, interaction });
+    const dmDelivery = await this.sendApplicantReviewDm({
+      application,
+      interaction,
+      status: "accepted"
+    });
+    const reviewNote = [
+      "Staff application accepted.",
+      roleAssignment?.reviewNote,
+      dmDelivery.reviewNote
+    ]
+      .filter(Boolean)
+      .join(" ");
+    const updated = await this.store.updateApplicationStatus(application.id, {
+      status: "accepted",
+      reviewedBy,
+      reviewNote
+    });
+
+    await this.updateReviewMessage(interaction, updated);
+    await interaction.editReply(
+      [
+        `Accepted staff applicant ${getApplicantDiscordInput(application)}.`,
+        roleAssignment?.replyNote,
+        dmDelivery.replyNote
+      ]
+        .filter(Boolean)
+        .join(" ")
+    );
+  }
+
   async assignAcceptedRole({ application, interaction }) {
-    if (!this.acceptedRoleId) {
+    const roleId = this.getReviewConfig(application).acceptedRoleId;
+    if (!roleId) {
       return null;
     }
 
@@ -143,7 +198,7 @@ export class ApplicationReviewService {
       );
     }
 
-    const role = await guild.roles.fetch(this.acceptedRoleId).catch((error) => {
+    const role = await guild.roles.fetch(roleId).catch((error) => {
       this.logger.warn("Could not fetch accepted applicant role:", error);
       return null;
     });
@@ -156,26 +211,23 @@ export class ApplicationReviewService {
 
     const member = await findGuildMemberByApplicantName(
       guild,
-      application.answers.creatorName,
+      getApplicantDiscordInput(application),
       this.logger
     );
     if (!member) {
       return roleAssignmentResult(
         "Accepted role not added: applicant username was not found.",
-        "I accepted the channel, but could not find that Discord username to add the role."
+        "I accepted the application, but could not find that Discord username to add the role."
       );
     }
 
     try {
-      await member.roles.add(
-        this.acceptedRoleId,
-        `Accepted partner application ${application.id}`
-      );
+      await member.roles.add(roleId, `Accepted ${getApplicationTypeLabel(application)} application ${application.id}`);
     } catch (error) {
       this.logger.warn("Could not assign accepted applicant role:", error);
       return roleAssignmentResult(
         "Accepted role not added: check Manage Roles permission and role order.",
-        "I accepted the channel, but could not add the role. Check the bot's Manage Roles permission and make sure the bot role is above the accepted role."
+        "I accepted the application, but could not add the role. Check the bot's Manage Roles permission and make sure the bot role is above the accepted role."
       );
     }
 
@@ -187,14 +239,77 @@ export class ApplicationReviewService {
   }
 
   async rejectApplication({ application, reviewedBy, interaction }) {
+    const dmDelivery = await this.sendApplicantReviewDm({
+      application,
+      interaction,
+      status: "rejected"
+    });
     const updated = await this.store.updateApplicationStatus(application.id, {
       status: "rejected",
       reviewedBy,
-      reviewNote: "Application rejected in Discord."
+      reviewNote: ["Application rejected in Discord.", dmDelivery.reviewNote]
+        .filter(Boolean)
+        .join(" ")
     });
 
     await this.updateReviewMessage(interaction, updated);
-    await interaction.editReply(`Rejected ${application.answers.creatorName}.`);
+    await interaction.editReply(
+      [`Rejected ${getApplicantDiscordInput(application)}.`, dmDelivery.replyNote]
+        .filter(Boolean)
+        .join(" ")
+    );
+  }
+
+  async sendApplicantReviewDm({ application, interaction, status }) {
+    const user = await this.findApplicantUser({ application, interaction });
+    if (!user) {
+      return dmDeliveryResult(
+        "DM not sent: applicant Discord account was not found.",
+        "I could not DM the applicant because I could not find that Discord account."
+      );
+    }
+
+    try {
+      await user.send({
+        content: buildApplicantDmMessage(application, status),
+        allowedMentions: { parse: [] }
+      });
+    } catch (error) {
+      this.logger.warn("Could not DM application applicant:", error);
+      return dmDeliveryResult(
+        "DM not sent: applicant DMs may be closed.",
+        "I could not DM the applicant. They may have DMs turned off."
+      );
+    }
+
+    const userLabel = formatDiscordUser(user);
+    return dmDeliveryResult(`DM sent to ${userLabel}.`, `DM sent to ${userLabel}.`);
+  }
+
+  async findApplicantUser({ application, interaction }) {
+    const applicantInput = getApplicantDiscordInput(application);
+    const guild = await resolveInteractionGuild(this.client, interaction);
+
+    if (guild) {
+      const member = await findGuildMemberByApplicantName(guild, applicantInput, this.logger);
+      if (member?.user) {
+        return member.user;
+      }
+    }
+
+    const userId = extractDiscordUserId(applicantInput);
+    if (!userId) {
+      return null;
+    }
+
+    return this.client.users.fetch(userId).catch((error) => {
+      this.logger.warn("Could not fetch applicant user for DM:", error);
+      return null;
+    });
+  }
+
+  getReviewConfig(application) {
+    return this.applicationReviews[getApplicationType(application)] ?? this.applicationReviews.streamPartner;
   }
 
   async updateReviewMessage(interaction, application) {
@@ -210,35 +325,14 @@ export class ApplicationReviewService {
 }
 
 export function buildApplicationEmbed(application) {
-  const platformName = getPlatformName(application.channel.platform);
   const status = application.status ?? "pending";
   const statusLabel = status.toUpperCase();
-  const answers = application.answers;
   const embed = new EmbedBuilder()
     .setColor(statusColors[status] ?? statusColors.pending)
-    .setTitle(`${statusLabel}: ${answers.creatorName}`)
-    .setDescription(
-      [
-        `Channel: ${application.channel.profileUrl}`,
-        `Platform: ${platformName}`,
-        status === "pending" ? "Accepting this will add the channel to live notifications." : null
-      ]
-        .filter(Boolean)
-        .join("\n")
-    )
-    .addFields(
-      field("Audience", answers.audienceSize, true),
-      field("Content", answers.content),
-      field("Promote Community", labelChoice(answers.promoteCommunity), true),
-      field("Create With Partners", labelChoice(answers.collaborate), true),
-      field("Events And Activities", labelChoice(answers.events), true),
-      field("Future YouTube Videos/Events", labelChoice(answers.futureVideosEvents), true)
-    )
+    .setTitle(`${statusLabel}: ${getApplicationTypeLabel(application)} - ${getApplicantDiscordInput(application) || "Unknown"}`)
+    .setDescription(buildApplicationDescription(application))
+    .addFields(...getApplicationFields(application))
     .setTimestamp(new Date(application.createdAt));
-
-  if (answers.notes) {
-    embed.addFields(field("Notes", answers.notes));
-  }
 
   if (application.reviewedBy) {
     embed.addFields(
@@ -270,6 +364,72 @@ export function buildReviewComponents(application, forceDisabled = false) {
         .setDisabled(disabled)
     )
   ];
+}
+
+function normalizeApplicationReviews({ applicationReviews, applicationsChannelId, acceptedRoleId }) {
+  return {
+    streamPartner: {
+      channelId: applicationReviews.streamPartner?.channelId ?? applicationsChannelId ?? null,
+      acceptedRoleId: applicationReviews.streamPartner?.acceptedRoleId ?? acceptedRoleId ?? null
+    },
+    staff: {
+      channelId: applicationReviews.staff?.channelId ?? null,
+      acceptedRoleId: applicationReviews.staff?.acceptedRoleId ?? null
+    }
+  };
+}
+
+function buildApplicationDescription(application) {
+  if (getApplicationType(application) === applicationTypes.staff) {
+    return [
+      "Staff application review.",
+      application.status === "pending" ? "Accepting this will assign the staff accepted role when configured." : null
+    ]
+      .filter(Boolean)
+      .join("\n");
+  }
+
+  const platformName = getPlatformName(application.channel?.platform);
+  return [
+    application.channel?.profileUrl ? `Channel: ${application.channel.profileUrl}` : null,
+    application.channel?.platform ? `Platform: ${platformName}` : null,
+    application.status === "pending" ? "Accepting this will add the channel to live notifications." : null
+  ]
+    .filter(Boolean)
+    .join("\n");
+}
+
+function getApplicationFields(application) {
+  const answers = application.answers ?? {};
+  if (getApplicationType(application) === applicationTypes.staff) {
+    return [
+      field("Discord", answers.discordUsername, true),
+      field("Timezone", answers.timezone, true),
+      field("Age", answers.age, true),
+      field("Active On Server", answers.activeOnServer),
+      field("Why Staff", answers.whyStaff),
+      field("Good Fit", answers.goodFit),
+      field("Previous Staff Experience", answers.previousStaffExperience),
+      field("Two Members Arguing", answers.arguingMembers),
+      field("Player Breaking Rules", answers.ruleBreaker),
+      field("Friend Broke A Rule", answers.friendRuleBreak),
+      field("Staff Abuse", answers.staffAbuse),
+      field("Hours Per Week", answers.hoursPerWeek, true),
+      field("Understands Decline", labelChoice(answers.understandsDecline), true),
+      answers.notes ? field("Notes", answers.notes) : null
+    ].filter(Boolean);
+  }
+
+  return [
+    field("Discord", answers.creatorName, true),
+    field("Audience", answers.audienceSize, true),
+    field("Content", answers.content),
+    field("Promote Community", labelChoice(answers.promoteCommunity), true),
+    field("Create With Partners", labelChoice(answers.collaborate), true),
+    field("Events And Activities", labelChoice(answers.events), true),
+    field("Future YouTube Videos/Events", labelChoice(answers.futureVideosEvents), true),
+    answers.notes ? field("Notes", answers.notes) : null
+  ].filter(Boolean);
 }
 
 function field(name, value, inline = false) {
@@ -318,7 +478,7 @@ export async function findGuildMemberByApplicantName(guild, applicantName, logge
 
   const query = getDiscordMemberSearchQuery(applicantName);
   const candidates = new Map();
-  for (const member of guild.members.cache.values()) {
+  for (const member of guild.members.cache?.values?.() ?? []) {
     candidates.set(member.id, member);
   }
 
@@ -381,7 +541,77 @@ function roleAssignmentResult(reviewNote, replyNote) {
   return { reviewNote, replyNote };
 }
 
+function dmDeliveryResult(reviewNote, replyNote) {
+  return { reviewNote, replyNote };
+}
+
 function formatDiscordUser(user) {
   const label = user.tag || user.username || "Discord user";
   return `${label} (${user.id})`;
+}
+
+function getApplicationsChannelEnvName(application) {
+  return getApplicationType(application) === applicationTypes.staff
+    ? "DISCORD_STAFF_APPLICATIONS_CHANNEL_ID"
+    : "DISCORD_APPLICATIONS_CHANNEL_ID";
+}
+
+function getApplicationType(application) {
+  return application?.type === applicationTypes.staff
+    ? applicationTypes.staff
+    : applicationTypes.streamPartner;
+}
+
+function getApplicationTypeLabel(application) {
+  return getApplicationType(application) === applicationTypes.staff
+    ? "Staff"
+    : "Streamer Partner";
+}
+
+function getApplicantDiscordInput(application) {
+  const answers = application.answers ?? {};
+  return getApplicationType(application) === applicationTypes.staff
+    ? answers.discordUsername
+    : answers.creatorName;
+}
+
+function buildApplicantDmMessage(application, status) {
+  const type = getApplicationType(application);
+  if (status === "accepted" && type === applicationTypes.staff) {
+    return [
+      "**Stream Syndicate Staff Application Accepted**",
+      "",
+      "Congratulations. Your staff application has been accepted.",
+      "",
+      "Welcome to the staff team. Please check the server for your next steps, and thank you for being willing to help the community stay active, fair, and welcoming."
+    ].join("\n");
+  }
+
+  if (status === "accepted") {
+    return [
+      "**Stream Syndicate Streamer Partner Application Accepted**",
+      "",
+      "Congratulations. Your streamer partner application has been accepted.",
+      "",
+      "Your channel has been added to live notifications, so future live streams can be announced in the server. Welcome to the partner program, and thank you for helping the community grow."
+    ].join("\n");
+  }
+
+  if (type === applicationTypes.staff) {
+    return [
+      "**Stream Syndicate Staff Application Update**",
+      "",
+      "Thank you for applying to join the staff team. After reviewing your application, we are not able to accept it right now.",
+      "",
+      "You are welcome to apply again after 2 weeks. We appreciate your interest in helping the community."
+    ].join("\n");
+  }
+
+  return [
+    "**Stream Syndicate Streamer Partner Application Update**",
+    "",
+    "Thank you for applying to become a streamer partner. After reviewing your application, we are not able to accept it right now.",
+    "",
+    "You are welcome to apply again after 2 weeks. We appreciate your support and interest in growing with the community."
+  ].join("\n");
 }

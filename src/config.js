@@ -84,6 +84,37 @@ function readPlatformRoleIds() {
   };
 }
 
+function readDiscordApplicationReviewConfig() {
+  const streamPartnerApplicationsChannelId =
+    process.env.DISCORD_APPLICATIONS_CHANNEL_ID?.trim() ||
+    process.env.discord_applications_channel_id?.trim() ||
+    null;
+  const staffApplicationsChannelId =
+    process.env.DISCORD_STAFF_APPLICATIONS_CHANNEL_ID?.trim() ||
+    process.env.STAFF_APPLICATIONS_CHANNEL_ID?.trim() ||
+    process.env.discord_staff_applications_channel_id?.trim() ||
+    null;
+
+  return {
+    streamPartner: {
+      channelId: streamPartnerApplicationsChannelId,
+      acceptedRoleId: cleanOptionalRoleId(
+        process.env.DISCORD_ACCEPTED_ROLE_ID ||
+          process.env.discord_accepted_role_id ||
+          process.env.ACCEPTED_ROLE_ID
+      )
+    },
+    staff: {
+      channelId: staffApplicationsChannelId,
+      acceptedRoleId: cleanOptionalRoleId(
+        process.env.DISCORD_STAFF_ACCEPTED_ROLE_ID ||
+          process.env.STAFF_ACCEPTED_ROLE_ID ||
+          process.env.discord_staff_accepted_role_id
+      )
+    }
+  };
+}
+
 export function readDataConfig() {
   return {
     dataDir: resolveProjectPath(process.env.DATA_DIR ?? "./data")
@@ -128,6 +159,7 @@ export function readBotConfig() {
   const port = Number.parseInt(process.env.PORT ?? "3000", 10);
   const liveRoleIds = readLiveRoleIds();
   const platformRoleIds = readPlatformRoleIds();
+  const applicationReviews = readDiscordApplicationReviewConfig();
 
   if (!Number.isFinite(pollIntervalSeconds) || pollIntervalSeconds < 15) {
     throw new Error("POLL_INTERVAL_SECONDS must be a number of at least 15.");
@@ -141,15 +173,9 @@ export function readBotConfig() {
     discord: {
       token: requireEnv("DISCORD_BOT_TOKEN"),
       notificationChannelId: requireEnv("DISCORD_NOTIFICATION_CHANNEL_ID"),
-      applicationsChannelId:
-        process.env.DISCORD_APPLICATIONS_CHANNEL_ID?.trim() ||
-        process.env.discord_applications_channel_id?.trim() ||
-        null,
-      acceptedRoleId: cleanOptionalRoleId(
-        process.env.DISCORD_ACCEPTED_ROLE_ID ||
-          process.env.discord_accepted_role_id ||
-          process.env.ACCEPTED_ROLE_ID
-      ),
+      applicationsChannelId: applicationReviews.streamPartner.channelId,
+      acceptedRoleId: applicationReviews.streamPartner.acceptedRoleId,
+      applicationReviews,
       liveRoleIds,
       platformRoleIds,
       liveRoleId: liveRoleIds[0] ?? null

@@ -75,8 +75,7 @@ async function main() {
     reviewService = new ApplicationReviewService({
       client,
       store,
-      applicationsChannelId: config.discord.applicationsChannelId,
-      acceptedRoleId: config.discord.acceptedRoleId,
+      applicationReviews: config.discord.applicationReviews,
       liveNotificationChannelId: config.discord.notificationChannelId
     });
 

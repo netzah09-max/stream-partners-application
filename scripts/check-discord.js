@@ -3,6 +3,10 @@ import "dotenv/config";
 const token = process.env.DISCORD_BOT_TOKEN?.trim();
 const channels = [
   ["DISCORD_APPLICATIONS_CHANNEL_ID", process.env.DISCORD_APPLICATIONS_CHANNEL_ID?.trim()],
+  [
+    "DISCORD_STAFF_APPLICATIONS_CHANNEL_ID",
+    process.env.DISCORD_STAFF_APPLICATIONS_CHANNEL_ID?.trim()
+  ],
   ["DISCORD_NOTIFICATION_CHANNEL_ID", process.env.DISCORD_NOTIFICATION_CHANNEL_ID?.trim()]
 ];
 

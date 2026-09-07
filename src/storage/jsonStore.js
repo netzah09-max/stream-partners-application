@@ -107,11 +107,12 @@ export class JsonFileStore {
     });
   }
 
-  async createApplication({ answers, channel }) {
+  async createApplication({ type = "streamPartner", answers, channel = null }) {
     const applications = await this.getApplications();
     const now = new Date().toISOString();
     const application = normalizeApplicationRecord({
       id: randomUUID(),
+      type,
       status: "pending",
       answers,
       channel,
@@ -310,6 +311,7 @@ function normalizeStreamerRecord(streamer) {
 function normalizeApplicationRecord(application) {
   return {
     id: application.id || randomUUID(),
+    type: normalizeApplicationType(application.type),
     status: application.status || "pending",
     answers: application.answers && typeof application.answers === "object" ? application.answers : {},
     channel: normalizeApplicationChannel(application.channel),
@@ -325,7 +327,15 @@ function normalizeApplicationRecord(application) {
   };
 }
 
-function normalizeApplicationChannel(channel = {}) {
+function normalizeApplicationType(type) {
+  return type === "staff" ? "staff" : "streamPartner";
+}
+
+function normalizeApplicationChannel(channel = null) {
+  if (!channel) {
+    return null;
+  }
+
   const platform = normalizePlatform(channel.platform);
   const handle = normalizeHandle(channel.handle);
 

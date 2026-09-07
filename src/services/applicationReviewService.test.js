@@ -1,6 +1,7 @@
 import test from "node:test";
 import assert from "node:assert/strict";
 import {
+  buildApplicationEmbed,
   extractDiscordUserId,
   memberMatchesApplicantName
 } from "./applicationReviewService.js";
@@ -28,4 +29,32 @@ test("matches an applicant name to a Discord guild member", () => {
   assert.equal(memberMatchesApplicantName(member, "@creatorname"), true);
   assert.equal(memberMatchesApplicantName(member, "Creator Name"), true);
   assert.equal(memberMatchesApplicantName(member, "different"), false);
+});
+
+test("builds a staff application review embed without a stream channel", () => {
+  const embed = buildApplicationEmbed({
+    id: "staff-1",
+    type: "staff",
+    status: "pending",
+    createdAt: "2026-09-07T00:00:00.000Z",
+    answers: {
+      discordUsername: "StaffApplicant",
+      timezone: "EST",
+      age: "18",
+      activeOnServer: "Daily",
+      whyStaff: "I want to help.",
+      goodFit: "I stay calm.",
+      previousStaffExperience: "Small server moderator.",
+      arguingMembers: "Listen and calm them down.",
+      ruleBreaker: "Warn and escalate if needed.",
+      friendRuleBreak: "Treat them fairly.",
+      staffAbuse: "Report it.",
+      hoursPerWeek: "10",
+      understandsDecline: "yes"
+    },
+    channel: null
+  }).toJSON();
+
+  assert.equal(embed.title, "PENDING: Staff - StaffApplicant");
+  assert.ok(embed.fields.some((field) => field.name === "Staff Abuse"));
 });

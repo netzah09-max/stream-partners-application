@@ -1,0 +1,130 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>Staff Application</title>
+    <meta
+      name="description"
+      content="Apply to join the Stream Syndicate staff team."
+    >
+    <link rel="stylesheet" href="/styles.css">
+    <script src="/app.js" defer></script>
+  </head>
+  <body>
+    <main class="shell">
+      <section class="intro intro--staff" aria-labelledby="intro-title">
+        <div class="intro__media" aria-hidden="true"></div>
+        <div class="intro__copy">
+          <p class="eyebrow">Staff Application</p>
+          <h1 id="intro-title">Help the server thrive</h1>
+          <p>
+            Tell us how you would support members, handle conflict, and stay active with the team.
+          </p>
+        </div>
+      </section>
+
+      <section class="form-panel" aria-labelledby="form-title">
+        <div class="form-header">
+          <p class="kicker">Staff Team</p>
+          <h2 id="form-title">Staff application</h2>
+          <p>
+            Please answer honestly. Staff reviews are sent to Discord, and you can apply again after 2 weeks if declined.
+          </p>
+        </div>
+
+        <form
+          id="application-form"
+          data-endpoint="/api/applications/staff"
+          data-application-label="Staff application"
+          novalidate
+        >
+          <div class="field">
+            <label for="discordUsername">What is your Discord username, mention, or user ID?</label>
+            <input id="discordUsername" name="discordUsername" type="text" autocomplete="username" maxlength="80" required>
+          </div>
+
+          <div class="field">
+            <label for="timezone">What timezone are you in?</label>
+            <p class="help-text">Use your timezone, such as EST, CST, CEST, or your country's timezone.</p>
+            <input id="timezone" name="timezone" type="text" maxlength="120" required>
+          </div>
+
+          <div class="field">
+            <label for="age">How old are you?</label>
+            <p class="help-text">Please be honest. False ages may cause the application to be declined.</p>
+            <input id="age" name="age" type="text" inputmode="numeric" maxlength="20" required>
+          </div>
+
+          <div class="field">
+            <label for="activeOnServer">How active can you be on the server?</label>
+            <p class="help-text">Tell us how much you can be online.</p>
+            <textarea id="activeOnServer" name="activeOnServer" rows="3" maxlength="500" required></textarea>
+          </div>
+
+          <div class="field">
+            <label for="whyStaff">Why do you want to become staff?</label>
+            <textarea id="whyStaff" name="whyStaff" rows="4" maxlength="1000" required></textarea>
+          </div>
+
+          <div class="field">
+            <label for="goodFit">What makes you a good fit for the staff team?</label>
+            <textarea id="goodFit" name="goodFit" rows="4" maxlength="1000" required></textarea>
+          </div>
+
+          <div class="field">
+            <label for="previousStaffExperience">Do you have any previous staff experience?</label>
+            <p class="help-text">Explain how long you have been staff, what kind of server it was, and what your role was.</p>
+            <textarea id="previousStaffExperience" name="previousStaffExperience" rows="4" maxlength="1000" required></textarea>
+          </div>
+
+          <div class="field">
+            <label for="arguingMembers">What would you do if two members were arguing?</label>
+            <textarea id="arguingMembers" name="arguingMembers" rows="4" maxlength="1000" required></textarea>
+          </div>
+
+          <div class="field">
+            <label for="ruleBreaker">How would you handle a player breaking the rules?</label>
+            <textarea id="ruleBreaker" name="ruleBreaker" rows="4" maxlength="1000" required></textarea>
+          </div>
+
+          <div class="field">
+            <label for="friendRuleBreak">What would you do if your friend broke a rule?</label>
+            <textarea id="friendRuleBreak" name="friendRuleBreak" rows="4" maxlength="1000" required></textarea>
+          </div>
+
+          <div class="field">
+            <label for="staffAbuse">What would you do if another staff member abused their permissions?</label>
+            <textarea id="staffAbuse" name="staffAbuse" rows="4" maxlength="1000" required></textarea>
+          </div>
+
+          <div class="field">
+            <label for="hoursPerWeek">How many hours per week can you be active?</label>
+            <input id="hoursPerWeek" name="hoursPerWeek" type="text" maxlength="80" required>
+          </div>
+
+          <fieldset class="choice-group">
+            <legend>Do you understand that your application may be declined?</legend>
+            <p class="help-text">We review every application carefully. If your application is declined, you are welcome to apply again after 2 weeks.</p>
+            <label><input type="radio" name="understandsDecline" value="yes" required> Yes</label>
+            <label><input type="radio" name="understandsDecline" value="no"> No</label>
+          </fieldset>
+
+          <div class="field">
+            <label for="notes">Is there anything else you would like us to know?</label>
+            <textarea id="notes" name="notes" rows="4" maxlength="1000"></textarea>
+          </div>
+
+          <div class="trap" aria-hidden="true">
+            <label for="website">Website</label>
+            <input id="website" name="website" type="text" tabindex="-1" autocomplete="off">
+          </div>
+
+          <div id="form-status" class="status" role="status" aria-live="polite"></div>
+
+          <button class="submit-button" type="submit">Submit Application</button>
+        </form>
+      </section>
+    </main>
+  </body>
+</html>

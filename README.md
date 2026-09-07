@@ -6,9 +6,11 @@ The watchlist is stored in `data/watchlist.json`. Website applications are store
 
 ## What works now
 
-- Hosts a public partner application form.
-- Sends each application to a Discord applications channel with Accept and Deny buttons.
-- Adds accepted channel links to the live notification watchlist automatically.
+- Hosts a public application chooser with streamer partner and staff forms.
+- Sends streamer partner and staff applications to separate Discord review channels with Accept and Deny buttons.
+- Adds accepted streamer partner channel links to the live notification watchlist automatically.
+- Gives accepted streamer partner and staff applicants their configured roles when possible.
+- DMs applicants when their application is accepted or denied, when their Discord account can be found.
 - Avoids repeat spam by remembering the last stream ID it notified.
 - Checks Twitch and Kick live status from just the accepted channel link.
 - Checks YouTube live status when `YOUTUBE_API_KEY` is configured.
@@ -41,7 +43,7 @@ Copy-Item .env.example .env
 
 Use the Discord Bot Token in `.env`. Do not use the Application ID, Client ID, or Public Key for `DISCORD_BOT_TOKEN`.
 
-The bot needs access to the notification channel and the applications channel with:
+The bot needs access to the notification channel and both application review channels with:
 
 - View Channel
 - Send Messages
@@ -50,7 +52,7 @@ The bot needs access to the notification channel and the applications channel wi
 
 You do not need the privileged Message Content intent for this bot.
 
-If you set `DISCORD_ACCEPTED_ROLE_ID`, put the bot's own role above that accepted role in Discord's role list. Discord user IDs or mentions are the most reliable way for applicants to identify themselves, but the bot also tries to match typed usernames.
+If you set `DISCORD_ACCEPTED_ROLE_ID` or `DISCORD_STAFF_ACCEPTED_ROLE_ID`, put the bot's own role above those accepted roles in Discord's role list. Discord user IDs or mentions are the most reliable way for applicants to identify themselves, but the bot also tries to match typed usernames.
 
 4. Optional for Twitch live alerts: create one Twitch application in the Twitch Developer Console and put its client ID and client secret into `.env`.
 
@@ -107,13 +109,14 @@ This no-domain Cloudflare link is temporary and can change when you restart the 
 
 ## Custom Domain
 
-The application form is served at `/apply`. The root page redirects there automatically.
+The root page lets applicants choose which form they want. The streamer partner form is served at `/apply/streampartner`, and the staff form is served at `/apply/staff`.
 
 For example:
 
 ```text
-https://streamsyndicate.online -> https://streamsyndicate.online/apply
-https://www.streamsyndicate.online -> https://www.streamsyndicate.online/apply
+https://streamsyndicate.online -> application chooser
+https://streamsyndicate.online/apply/streampartner -> streamer partner form
+https://streamsyndicate.online/apply/staff -> staff form
 ```
 
 For a permanent Cloudflare domain, add `streamsyndicate.online` to Cloudflare, change the domain's nameservers at Namecheap to the two nameservers Cloudflare gives you, then create a named Cloudflare Tunnel with these public hostnames:
@@ -129,14 +132,23 @@ You can also add this if you want a direct subdomain:
 apply.streamsyndicate.online -> http://localhost:3000
 ```
 
-## Application Flow
+## Streamer Partner Application Flow
 
-1. A creator submits the public form.
+1. A creator submits `/apply/streampartner`.
 2. The bot posts their answers into `DISCORD_APPLICATIONS_CHANNEL_ID`.
 3. Staff press Accept or Deny in Discord.
 4. Accept saves the submitted channel link into `data/watchlist.json`.
 5. Accept gives the applicant `DISCORD_ACCEPTED_ROLE_ID` when that setting is filled in and the typed Discord account can be found.
-6. The live monitor reloads that watchlist every poll and posts future live alerts into `DISCORD_NOTIFICATION_CHANNEL_ID`.
+6. The bot DMs the applicant with an accepted or denied message when the typed Discord account can be found.
+7. The live monitor reloads that watchlist every poll and posts future live alerts into `DISCORD_NOTIFICATION_CHANNEL_ID`.
+
+## Staff Application Flow
+
+1. A staff applicant submits `/apply/staff`.
+2. The bot posts their answers into `DISCORD_STAFF_APPLICATIONS_CHANNEL_ID`.
+3. Staff press Accept or Deny in Discord.
+4. Accept gives the applicant `DISCORD_STAFF_ACCEPTED_ROLE_ID` when that setting is filled in and the typed Discord account can be found.
+5. The bot DMs the applicant with an accepted or denied message when the typed Discord account can be found.
 
 ## Commands
 
@@ -194,8 +206,10 @@ npm run check:discord
 | --- | --- | --- |
 | `DISCORD_BOT_TOKEN` | Yes | Discord bot token. |
 | `DISCORD_NOTIFICATION_CHANNEL_ID` | Yes | Default Discord channel for live notifications. |
-| `DISCORD_APPLICATIONS_CHANNEL_ID` | Yes for website | Discord channel where website applications should be sent. |
-| `DISCORD_ACCEPTED_ROLE_ID` | No | Role ID to give an applicant when staff press Accept. |
+| `DISCORD_APPLICATIONS_CHANNEL_ID` | Yes for streamer form | Discord channel where streamer partner applications should be sent. |
+| `DISCORD_ACCEPTED_ROLE_ID` | No | Role ID to give a streamer partner applicant when staff press Accept. |
+| `DISCORD_STAFF_APPLICATIONS_CHANNEL_ID` | Yes for staff form | Discord channel where staff applications should be sent. |
+| `DISCORD_STAFF_ACCEPTED_ROLE_ID` | No | Role ID to give a staff applicant when staff press Accept. |
 | `TWITCH_PING_ROLE_ID` | No | Twitch ping ID. |
 | `KICK_PING_ROLE_ID` | No | Kick ping ID. |
 | `YOUTUBE_PING_ROLE_ID` | No | YouTube ping ID. |

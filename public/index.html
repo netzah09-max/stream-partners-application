@@ -3,110 +3,45 @@
   <head>
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
-    <title>Partner Application</title>
+    <title>Stream Syndicate Applications</title>
     <meta
       name="description"
-      content="Apply to become a creator partner with the community."
+      content="Choose a Stream Syndicate application."
     >
     <link rel="stylesheet" href="/styles.css">
-    <script src="/app.js" defer></script>
   </head>
   <body>
-    <main class="shell">
+    <main class="shell hub-shell">
       <section class="intro" aria-labelledby="intro-title">
         <div class="intro__media" aria-hidden="true"></div>
         <div class="intro__copy">
-          <p class="eyebrow">Creator Partner Application</p>
-          <h1 id="intro-title">Build with our community</h1>
+          <p class="eyebrow">Stream Syndicate</p>
+          <h1 id="intro-title">Apply to join us</h1>
           <p>
-            Thank you for your interest in becoming a partner. We support creators of every size and connect people who want to grow together.
+            Pick the application that matches what you want to do in the community.
           </p>
         </div>
       </section>
 
-      <section class="form-panel" aria-labelledby="form-title">
+      <section class="form-panel hub-panel" aria-labelledby="application-title">
         <div class="form-header">
           <p class="kicker">Applications</p>
-          <h2 id="form-title">Tell us about your channel</h2>
+          <h2 id="application-title">Choose an application</h2>
           <p>
-            Paste a Twitch, Kick, YouTube, or TikTok channel link. If your application is accepted in Discord, that channel is added to live alerts automatically.
+            Select streamer partner if you want your channel reviewed for live alerts. Select staff if you want to help moderate and support the server.
           </p>
-          <div class="community-note">
-            <p>
-              Hello! Thank you for your interest in becoming a partner with our community.
-            </p>
-            <p>
-              You do not have to be a large creator to be part of this. Our goal is to support one another, connect creators, and grow together as a community.
-            </p>
-            <p>
-              If your request has been denied, you can try again in 2 weeks.
-            </p>
-          </div>
         </div>
 
-        <form id="application-form" novalidate>
-          <div class="field">
-            <label for="creatorName">Discord username, mention, or user ID</label>
-            <input id="creatorName" name="creatorName" type="text" autocomplete="username" maxlength="80" required>
-          </div>
-
-          <div class="field">
-            <label for="content">What content do you create or stream?</label>
-            <textarea id="content" name="content" rows="4" maxlength="1000" required></textarea>
-          </div>
-
-          <div class="field">
-            <label for="channelLink">Please share your channel or creator link.</label>
-            <input id="channelLink" name="channelLink" type="url" inputmode="url" maxlength="400" placeholder="https://twitch.tv/channelname" required>
-          </div>
-
-          <div class="field">
-            <label for="audienceSize">How large is your current audience?</label>
-            <textarea id="audienceSize" name="audienceSize" rows="3" maxlength="300" required></textarea>
-          </div>
-
-          <fieldset class="choice-group">
-            <legend>Would you be interested in promoting our community?</legend>
-            <label><input type="radio" name="promoteCommunity" value="yes" required> Yes</label>
-            <label><input type="radio" name="promoteCommunity" value="maybe"> Maybe</label>
-            <label><input type="radio" name="promoteCommunity" value="no"> No</label>
-          </fieldset>
-
-          <fieldset class="choice-group">
-            <legend>Would you be interested in creating content with other partners?</legend>
-            <label><input type="radio" name="collaborate" value="yes" required> Yes</label>
-            <label><input type="radio" name="collaborate" value="maybe"> Maybe</label>
-            <label><input type="radio" name="collaborate" value="no"> No</label>
-          </fieldset>
-
-          <fieldset class="choice-group">
-            <legend>Would you be interested in coming up with events, content, or activities with other partners for our members?</legend>
-            <label><input type="radio" name="events" value="yes" required> Yes</label>
-            <label><input type="radio" name="events" value="maybe"> Maybe</label>
-            <label><input type="radio" name="events" value="no"> No</label>
-          </fieldset>
-
-          <fieldset class="choice-group">
-            <legend>Would you be willing to feature in future YouTube videos or create future events?</legend>
-            <label><input type="radio" name="futureVideosEvents" value="yes" required> Yes</label>
-            <label><input type="radio" name="futureVideosEvents" value="maybe"> Maybe</label>
-            <label><input type="radio" name="futureVideosEvents" value="no"> No</label>
-          </fieldset>
-
-          <div class="field">
-            <label for="notes">Anything else you want us to know?</label>
-            <textarea id="notes" name="notes" rows="4" maxlength="1000"></textarea>
-          </div>
-
-          <div class="trap" aria-hidden="true">
-            <label for="website">Website</label>
-            <input id="website" name="website" type="text" tabindex="-1" autocomplete="off">
-          </div>
-
-          <div id="form-status" class="status" role="status" aria-live="polite"></div>
-
-          <button class="submit-button" type="submit">Submit Application</button>
-        </form>
+        <nav class="application-options" aria-label="Application choices">
+          <a class="application-button application-button--streamer" href="/apply/streampartner">
+            <span>streamer partner</span>
+            <small>Creator partnership and live stream alerts</small>
+          </a>
+          <a class="application-button application-button--staff" href="/apply/staff">
+            <span>staff</span>
+            <small>Server support and moderation team</small>
+          </a>
+        </nav>
       </section>
     </main>
   </body>

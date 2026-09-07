@@ -2,7 +2,7 @@ import express from "express";
 import rateLimit from "express-rate-limit";
 import path from "node:path";
 import { projectRoot } from "../config.js";
-import { validateApplicationForm } from "../services/applicationValidation.js";
+import { applicationTypes, validateApplicationForm } from "../services/applicationValidation.js";
 
 const publicDir = path.join(projectRoot, "public");
 
@@ -22,11 +22,19 @@ export function createWebApp({ store, reviewService, logger = console }) {
   app.use(express.urlencoded({ extended: false, limit: "25kb" }));
 
   app.get("/", (req, res) => {
-    res.redirect(302, "/apply");
+    res.sendFile(path.join(publicDir, "index.html"));
   });
 
   app.get(["/apply", "/apply/"], (req, res) => {
-    res.sendFile(path.join(publicDir, "index.html"));
+    res.redirect(302, "/apply/streampartner");
+  });
+
+  app.get(["/apply/streampartner", "/apply/streampartner/"], (req, res) => {
+    res.sendFile(path.join(publicDir, "stream-partner.html"));
+  });
+
+  app.get(["/apply/staff", "/apply/staff/"], (req, res) => {
+    res.sendFile(path.join(publicDir, "staff.html"));
   });
 
   app.use(express.static(publicDir, { extensions: ["html"], index: false }));
@@ -35,8 +43,43 @@ export function createWebApp({ store, reviewService, logger = console }) {
     res.json({ ok: true });
   });
 
-  app.post("/api/applications", submissionLimiter, async (req, res) => {
-    const validation = validateApplicationForm(req.body);
+  app.post(
+    "/api/applications/stream-partner",
+    submissionLimiter,
+    handleApplicationSubmission({
+      type: applicationTypes.streamPartner,
+      store,
+      reviewService,
+      logger
+    })
+  );
+  app.post(
+    "/api/applications/staff",
+    submissionLimiter,
+    handleApplicationSubmission({
+      type: applicationTypes.staff,
+      store,
+      reviewService,
+      logger
+    })
+  );
+  app.post(
+    "/api/applications",
+    submissionLimiter,
+    handleApplicationSubmission({
+      type: applicationTypes.streamPartner,
+      store,
+      reviewService,
+      logger
+    })
+  );
+
+  return app;
+}
+
+function handleApplicationSubmission({ type, store, reviewService, logger }) {
+  return async (req, res) => {
+    const validation = validateApplicationForm(req.body, type);
 
     if (!validation.isValid) {
       res.status(400).json({ ok: false, errors: validation.errors });
@@ -45,6 +88,7 @@ export function createWebApp({ store, reviewService, logger = console }) {
 
     try {
       const application = await store.createApplication({
+        type,
         answers: validation.values,
         channel: validation.parsedChannel
       });
@@ -53,8 +97,9 @@ export function createWebApp({ store, reviewService, logger = console }) {
       res.status(201).json({
         ok: true,
         applicationId: application.id,
-        platform: validation.parsedChannel.platform,
-        profileUrl: validation.parsedChannel.profileUrl
+        applicationType: type,
+        platform: validation.parsedChannel?.platform,
+        profileUrl: validation.parsedChannel?.profileUrl
       });
     } catch (error) {
       logger.error("Application submission failed:", error);
@@ -65,9 +110,7 @@ export function createWebApp({ store, reviewService, logger = console }) {
         }
       });
     }
-  });
-
-  return app;
+  };
 }
 
 function getSubmissionErrorMessage(error) {
