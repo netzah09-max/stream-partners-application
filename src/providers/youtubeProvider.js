@@ -35,21 +35,52 @@ export class YouTubeProvider {
       return streamer.metadata.youtubeChannelId;
     }
 
-    const handle = streamer.metadata?.youtubeHandle || `@${normalizeHandle(streamer.handle)}`;
-    const cacheKey = handle.toLowerCase();
-    if (this.channelIdCache.has(cacheKey)) {
-      return this.channelIdCache.get(cacheKey);
+    for (const resolver of getChannelResolvers(streamer)) {
+      const cacheKey = `${resolver.type}:${resolver.value}`.toLowerCase();
+      if (this.channelIdCache.has(cacheKey)) {
+        const cached = this.channelIdCache.get(cacheKey);
+        if (cached) {
+          return cached;
+        }
+
+        continue;
+      }
+
+      const channelId = await this.fetchChannelId(resolver);
+      this.channelIdCache.set(cacheKey, channelId);
+      if (channelId) {
+        return channelId;
+      }
+    }
+
+    return null;
+  }
+
+  async fetchChannelId(resolver) {
+    if (resolver.type === "customPath") {
+      return this.searchChannelId(resolver.value);
     }
 
     const url = new URL("https://www.googleapis.com/youtube/v3/channels");
     url.searchParams.set("part", "id,snippet");
-    url.searchParams.set("forHandle", handle);
+    url.searchParams.set(resolver.type === "username" ? "forUsername" : "forHandle", resolver.value);
     url.searchParams.set("key", this.apiKey);
 
     const response = await this.fetchJson(url);
-    const channelId = response.items?.[0]?.id ?? null;
-    this.channelIdCache.set(cacheKey, channelId);
-    return channelId;
+    return response.items?.[0]?.id ?? null;
+  }
+
+  async searchChannelId(query) {
+    const url = new URL("https://www.googleapis.com/youtube/v3/search");
+    url.searchParams.set("part", "snippet");
+    url.searchParams.set("q", query);
+    url.searchParams.set("type", "channel");
+    url.searchParams.set("maxResults", "1");
+    url.searchParams.set("key", this.apiKey);
+
+    const response = await this.fetchJson(url);
+    const item = response.items?.[0];
+    return item?.id?.channelId ?? item?.snippet?.channelId ?? null;
   }
 
   async getLiveStreamForChannel({ streamer, channelId }) {
@@ -106,4 +137,62 @@ function bestThumbnail(thumbnails = {}) {
     thumbnails.default?.url ||
     null
   );
+}
+
+function getChannelResolvers(streamer) {
+  const metadata = streamer.metadata ?? {};
+  const resolvers = [];
+  const legacyPath = parseLegacyPath(metadata.youtubeLegacyPath);
+
+  if (metadata.youtubeHandle) {
+    resolvers.push({ type: "handle", value: ensureHandle(metadata.youtubeHandle) });
+  }
+
+  if (legacyPath?.type === "user") {
+    resolvers.push({ type: "username", value: legacyPath.value });
+  }
+
+  const normalizedHandle = normalizeHandle(streamer.handle);
+  if (normalizedHandle) {
+    resolvers.push({ type: "handle", value: ensureHandle(normalizedHandle) });
+  }
+
+  if (legacyPath?.type === "c") {
+    resolvers.push({ type: "customPath", value: legacyPath.value });
+  }
+
+  return uniqueResolvers(resolvers);
+}
+
+function parseLegacyPath(value) {
+  const [type, ...rest] = String(value ?? "").split("/");
+  const cleanType = type?.toLowerCase();
+  const cleanValue = rest.join("/").trim();
+
+  if (!["c", "user"].includes(cleanType) || !cleanValue) {
+    return null;
+  }
+
+  return {
+    type: cleanType,
+    value: cleanValue
+  };
+}
+
+function ensureHandle(value) {
+  const handle = String(value ?? "").trim();
+  return handle.startsWith("@") ? handle : `@${handle}`;
+}
+
+function uniqueResolvers(resolvers) {
+  const seen = new Set();
+  return resolvers.filter((resolver) => {
+    const key = `${resolver.type}:${resolver.value}`.toLowerCase();
+    if (seen.has(key)) {
+      return false;
+    }
+
+    seen.add(key);
+    return true;
+  });
 }

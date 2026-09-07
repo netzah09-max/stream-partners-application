@@ -225,7 +225,7 @@ YOUTUBE_API_KEY=your_google_api_key_here
 8. Restart the bot with `npm start`.
 9. Run `npm run check:youtube` to confirm the key works.
 
-YouTube creators can apply with links like `https://youtube.com/@channelname` or `https://www.youtube.com/channel/UC...`. When accepted, their channel is added to the watchlist and checked every poll.
+YouTube creators can apply with links like `https://youtube.com/@channelname`, `https://www.youtube.com/channel/UC...`, `https://www.youtube.com/user/name`, or `https://www.youtube.com/c/name`. When accepted, their channel is added to the watchlist and checked every poll.
 
 ## Environment Variables
 
