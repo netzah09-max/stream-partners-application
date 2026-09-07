@@ -9,12 +9,15 @@ import { TikTokProvider } from "./providers/tiktokProvider.js";
 import { DiscordNotifier } from "./notifiers/discordNotifier.js";
 import { LiveMonitor } from "./liveMonitor.js";
 import { ApplicationReviewService } from "./services/applicationReviewService.js";
+import { sendNewMemberWelcome } from "./services/welcomeService.js";
 import { startWebServer } from "./web/server.js";
 
 async function main() {
   const config = readBotConfig();
   const store = new JsonFileStore({ dataDir: config.dataDir });
-  const client = new Client({ intents: [GatewayIntentBits.Guilds] });
+  const client = new Client({
+    intents: [GatewayIntentBits.Guilds, GatewayIntentBits.GuildMembers]
+  });
   let monitor = null;
   let webServer = null;
   let reviewService = null;
@@ -34,6 +37,14 @@ async function main() {
           ephemeral: true
         });
       }
+    }
+  });
+
+  client.on(Events.GuildMemberAdd, async (member) => {
+    try {
+      await sendNewMemberWelcome(member);
+    } catch (error) {
+      console.error("New member welcome DM failed:", error);
     }
   });
 

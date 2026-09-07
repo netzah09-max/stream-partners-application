@@ -68,7 +68,11 @@ export class LiveMonitor {
         continue;
       }
 
-      await this.checkPlatform({ provider, streamers, state });
+      try {
+        await this.checkPlatform({ provider, streamers, state });
+      } catch (error) {
+        this.logger.error(`Live provider check failed for ${platform}:`, error);
+      }
     }
 
     await this.store.saveState(state);
